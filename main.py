@@ -1,7 +1,4 @@
 from telegram.ext import Updater, InlineQueryHandler, CommandHandler, CallbackContext
-import requests
-import re
-import random
 from datetime import datetime, time
 
 
@@ -9,19 +6,18 @@ def log(log_message):
     print(str(datetime.now()) + " [NoteBot] " + str(log_message))
 
 
+#post bot command instructions to user in a message
 def post_help(update, context):
     help_text = "ℹ NoteBot /help \n A bot to save your notes to a list. Start a note with a time to have the the bot message you when it's time, eg. /add 18:45 take pizza from oven \n\n Commands: \n /notes - view all notes \n /add my note - add a new note \n /add 18:30 my note - add a note with alarm \n /delete 1 - delete a note (/delete 4 deletes note #4) \n\n"
     update.message.reply_text(help_text)
-    log("posted help")    
 
 
-#add a new note    
+#add a new note from user's message   
 def add_note(update, context):
     msg = update.message.text
     msg = msg.replace('/add', '')
     msg = msg.strip()
-    log("add_note: " + msg)
-    
+
     if (len(msg) > 0):
         write_to_file(msg)
         update.message.reply_text('✅ Added note "' + str(msg) + '" /notes')
@@ -29,7 +25,7 @@ def add_note(update, context):
         update.message.reply_text("❌ Can't add empty note, specify a note message (eg. /add this is my test note)")
 
 
-#delete a note from notes.txt, check if user entered a valid note number
+#delete a note from notes.txt, also check if user entered a valid note number
 def delete_note(update, context):
     log('delete_note')
     msg = update.message.text
@@ -44,6 +40,7 @@ def delete_note(update, context):
         update.message.reply_text('✅ Deleted note #' + str(msg) + ' /notes')
 
 
+#delete a note line from the notes.txt
 def delete_note_line(line_number):
     line_to_delete = int(line_number) - 1
     notes_file = open('notes.txt', 'r')
@@ -83,7 +80,6 @@ def post_notes(update, context):
         i += 1
     notes_file.close()   
     update.message.reply_text(notes_string)
-    log(notes_string)
 
 
 #read notes.txt, count lines and return the note_count
@@ -103,23 +99,24 @@ def write_to_file(my_string):
         notes_file.write(str(my_string) + '\n')
 
 
+#get current time using the datetime module
 def get_current_time():
     now = datetime.now()
-    #build a simple ISO format time string from the datetime object for easier comparison
+    #build a simple ISO format time string from the datetime object
     hour = now.hour
     minute = now.minute
     second = now.second   
     if(hour < 10): hour = '0' + str(hour)
     if(minute < 10): minute = '0' + str(minute)   
     if(second < 10): second = '0' + str(second) 
-    #create a time object from ISO format string
+    #create a simpler time object from ISO format string for easier comparison later
     new_time_object = time.fromisoformat(str(hour) + ':' + str(minute) + ':'+ str(second))  
     return new_time_object
 
 
 #read notes to check if they have an alarm time, and if the time has passed, this is polled regularly
 def check_for_alarms(context: CallbackContext):
-    user_id = 'YOUR_USER_ID' #set your own user id to have the bot send messages to you https://telegram.me/userinfobot
+    user_id = YOUR_USER_ID #set your own user id to have the bot send messages to you https://telegram.me/userinfobot
     now = get_current_time()
 
     #read the notes.txt to check if any notes have an alarm time set
@@ -129,9 +126,9 @@ def check_for_alarms(context: CallbackContext):
 
     while line != '':
         line_content = line.split() 
-        #if the first element in note text includes ":", assume it's an alarm time (eg. "18:30")
+        #if the first element in note text includes ":", assume it's from an alarm time (eg. "18:30")
         if ':' in line_content[0]:
-            #convert note alarm to ISO format string, then build a time object from it, 6:30 would be converted to 06:30:00
+            #convert note alarm string to ISO format string, then build a time object from it, 6:30 would be converted to 06:30:00
             note_alarm = line_content[0].split(":")
             hour = int(note_alarm[0])
             minute = int(note_alarm[1])
